@@ -2,6 +2,7 @@ eps=1/128;
 $fn = 100;                          // how polligonall you want the model 
 
 module toroidal_propeller(
+    reverse = false,                // reverse spinning blades
     blades = 3,                     // number of blades
     height = 6,                     // height
     blade_length = 68,              // blade length in mm
@@ -13,13 +14,15 @@ module toroidal_propeller(
     safe_blades_direction = "PREV", // indicates if a blade must delete itself from getting into the previous (PREV) or the next blade (NEXT).
     hub_d = 16,                     // hub diameter
     hub_screw_d = 5.5,              // hub screw diameter
+    hub_height = 6,                 // hub height
     eh_l = 0,                       // length of the emptying of the hub
     eh_d = 0                        // diameter of the hollowing of the hub
 ){
     difference(){
         union(){
+            twist_direction = (reverse == true ? -blade_twist : blade_twist);
             // Hub
-            cylinder(h=height,d=hub_d);
+            cylinder(h=hub_height,d=hub_d);
             // Propellers
             for(a=[0:blades-1]){
                 rotate([0,0,a*(360/blades)]){
@@ -31,14 +34,14 @@ module toroidal_propeller(
                                 width = blade_width,
                                 thickness = blade_thickness,
                                 offset = blade_hole_offset,
-                                twist = blade_twist
+                                twist = twist_direction
                             );
                         
                         // Substract what is inside other blades
-                        cw_ccw_mult = (blade_twist > 0 ? -1 : 1) * (safe_blades_direction == "PREV" ? 1 : -1);
+                        cw_ccw_mult = (twist_direction > 0 ? -1 : 1) * (safe_blades_direction == "PREV" ? 1 : -1);
                         rotate([0,0, cw_ccw_mult * 360/blades])
                             translate([blade_offset,0,-eps/2])
-                                linear_extrude(height=height+eps, twist=blade_twist)
+                                linear_extrude(height=height+eps, twist=twist_direction)
                                     translate([blade_length/2,0,0])
                                         scale([1, (blade_width-16*eps)/(blade_length-16*eps)]) circle(d=blade_length-16*eps);
                     }
@@ -48,7 +51,7 @@ module toroidal_propeller(
         
         // Hub hole
         translate([0,0,-eps/2])
-            cylinder(h=height+eps,d=hub_screw_d);
+            cylinder(h=hub_height+eps,d=hub_screw_d);
 
         // Empty hub
         translate([0,0,-eps/2])
